@@ -41,6 +41,20 @@ typedef unsigned long int ulong;
 #define SEARCH_NODES 0x10
 
 /*
+ * This option can be used to perform the splaying operation on the target node
+ * during a search. For performance purposes, this behaviour is configurable,
+ * since it can prevent concurrent accesses in multithreaded scenarios.
+ * If set, the amortized analisys result applies and the amortized time for all
+ * types of operations seen in a sequence is logarithmic in the max number of
+ * nodes the structure reaches in a sequence, but searches must be performed
+ * atomically (and locking of the structure is not dealt with here).
+ * If not set, searches have a linear worst-case execution time, but can be
+ * perfomed concurrently by multiple threads.
+ * Can be OR'd with the previous ones.
+ */
+#define SEARCH_SPLAY 0x2
+
+/*
  * These options can be used to specify the desired kind of depth-first search.
  * Only one at a time is allowed.
  */

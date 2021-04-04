@@ -87,17 +87,18 @@ int delete_splay_int_tree(SplayIntTree *tree, int opts) {
  *
  * @param tree Tree to search into.
  * @param key Key to look for.
- * @param opts Looking for data stored in a node or the entire node?
+ * @param opts Configures the behaviour of the search operation (see header).
  * @return Data stored in a node (if any) or pointer to the node (if any).
  */
 void *splay_int_search(SplayIntTree *tree, int key, int opts) {
     if ((opts <= 0) || (tree == NULL)) return NULL;  // Sanity check.
     SplayIntNode *searched_node = _search_splay_int_node(tree, key);
-    if (searched_node != NULL) {
-        if (opts & SEARCH_DATA) return searched_node->_data;
-        if (opts & SEARCH_NODES) return searched_node;
-    }
-    return NULL;
+    if (searched_node == NULL) return NULL;
+    if (opts & SEARCH_SPLAY)
+        while (tree->_root != searched_node)
+            searched_node = _spli_splay(searched_node);
+    if (opts & SEARCH_DATA) return searched_node->_data;
+    if (opts & SEARCH_NODES) return (void *)searched_node;
 }
 
 /*
@@ -135,7 +136,7 @@ int splay_int_delete(SplayIntTree *tree, int key, int opts) {
  * @param tree Pointer to the tree to insert into.
  * @param new_key New key to add to the dictionary.
  * @param new_data New data to store into the dictionary.
- * @return Internal nodes counter after the insertion.
+ * @return Internal nodes counter after the insertion, or 0 if full/bad args.
  */
 ulong splay_int_insert(SplayIntTree *tree, int new_key, void *new_data) {
     if (tree == NULL) return 0;  // Sanity check.
@@ -153,20 +154,17 @@ ulong splay_int_insert(SplayIntTree *tree, int new_key, void *new_data) {
         while (curr != NULL) {
             pred = curr;
             comp = curr->_key - new_key;
-            if (comp >= 0) {
-                // Equals are kept in the left subtree.
-                curr = curr->_left_son;
-            } else {
-                curr = curr->_right_son;
-            }
+            // Equals are kept in the left subtree.
+            if (comp >= 0) curr = curr->_left_son;
+            else curr = curr->_right_son;
         }
         comp = pred->_key - new_key;
-        if (comp >= 0) {
-            _spli_insert_left_subtree(pred, new_node);
-        } else {
-            _spli_insert_right_subtree(pred, new_node);
-        }
-        _spli_splay_insert(new_node);
+        if (comp >= 0) _spli_insert_left_subtree(pred, new_node);
+        else _spli_insert_right_subtree(pred, new_node);
+        // Splay the new node.
+        curr = new_node;
+        while (tree->_root != curr)
+            curr = _spli_splay(curr);
         tree->nodes_count++;
     }
     return tree->nodes_count;  // Return the result of the insertion.
@@ -192,21 +190,21 @@ void **splay_int_dfs(SplayIntTree *tree, int type, int opts) {
     if ((type <= 0) || (opts <= 0)) return NULL;
     if ((tree == NULL) || (tree->_root == NULL)) return NULL;
     // Allocate memory according to options.
-    void **dfsRes;
+    void **dfs_res;
     int int_opt;
     if (opts & SEARCH_DATA) {
         int_opt = SEARCH_DATA;
-        dfsRes = calloc(tree->nodes_count, sizeof(void *));
+        dfs_res = calloc(tree->nodes_count, sizeof(void *));
     } else if (opts & SEARCH_KEYS) {
         int_opt = SEARCH_KEYS;
-        dfsRes = calloc(tree->nodes_count, sizeof(int));
+        dfs_res = calloc(tree->nodes_count, sizeof(int));
     } else if (opts & SEARCH_NODES) {
         int_opt = SEARCH_NODES;
-        dfsRes = calloc(tree->nodes_count, sizeof(SplayIntNode *));
+        dfs_res = calloc(tree->nodes_count, sizeof(SplayIntNode *));
     } else return NULL;  // Invalid option.
-    if (dfsRes == NULL) return NULL;  // calloc failed.
+    if (dfs_res == NULL) return NULL;  // calloc failed.
     // Launch the requested DFS according to type.
-    void **int_ptr = dfsRes;
+    void **int_ptr = dfs_res;
     if (type & DFS_PRE_ORDER) {
         _spli_preodfs(tree->_root, &int_ptr, int_opt);
     } else if (type & DFS_IN_ORDER) {
@@ -215,11 +213,11 @@ void **splay_int_dfs(SplayIntTree *tree, int type, int opts) {
         _spli_postodfs(tree->_root, &int_ptr, int_opt);
     } else {
         // Invalid type.
-        free(dfsRes);
+        free(dfs_res);
         return NULL;
     }
     // The array is now filled with the requested data.
-    return dfsRes;
+    return dfs_res;
 }
 
 /*
@@ -246,67 +244,67 @@ void **splay_int_bfs(SplayIntTree *tree, int type, int opts) {
         !((opts & SEARCH_KEYS) || (opts & SEARCH_DATA) ||
         (opts & SEARCH_NODES))) return NULL;
     // Allocate memory in the heap.
-    void **bfsRes = NULL;
+    void **bfs_res = NULL;
     void **int_ptr;
-    int *keyPtr;  // Used only if keys are searched.
+    int *key_ptr;  // Used only if keys are searched.
     if (opts & SEARCH_DATA) {
-        bfsRes = calloc(tree->nodes_count, sizeof(void *));
+        bfs_res = calloc(tree->nodes_count, sizeof(void *));
     } else if (opts & SEARCH_KEYS) {
-        bfsRes = calloc(tree->nodes_count, sizeof(SplayIntNode *));
-        keyPtr = (int *) bfsRes;
+        bfs_res = calloc(tree->nodes_count, sizeof(SplayIntNode *));
+        key_ptr = (int *)bfs_res;
     } else if (opts & SEARCH_NODES) {
-        bfsRes = calloc(tree->nodes_count, sizeof(SplayIntNode *));
+        bfs_res = calloc(tree->nodes_count, sizeof(SplayIntNode *));
     } else return NULL;  // Invalid option.
-    if (bfsRes == NULL) return NULL;  // Calloc failed.
-    int_ptr = bfsRes + 1;
-    *bfsRes = (void *) (tree->_root);
+    if (bfs_res == NULL) return NULL;  // Calloc failed.
+    int_ptr = bfs_res + 1;
+    *bfs_res = (void *)(tree->_root);
     SplayIntNode *curr;
     // Start the visit, using the same array to return as a temporary queue
     // for the nodes.
     for (unsigned long int i = 0; i < tree->nodes_count; i++) {
-        curr = (SplayIntNode *) bfsRes[i];
+        curr = (SplayIntNode *)bfs_res[i];
         // Visit the current node.
         if (opts & SEARCH_DATA) {
-            bfsRes[i] = curr->_data;
+            bfs_res[i] = curr->_data;
         } else if (opts & SEARCH_KEYS) {
-            *keyPtr = curr->_key;
-            keyPtr++;
+            *key_ptr = curr->_key;
+            key_ptr++;
         } else if (opts & SEARCH_NODES) {
-            bfsRes[i] = curr;
+            bfs_res[i] = curr;
         }
         // Eventually add the sons to the array, to be visited afterwards.
         if (type & BFS_LEFT_FIRST) {
             if (curr->_left_son != NULL) {
-                *int_ptr = (void *) (curr->_left_son);
+                *int_ptr = (void *)(curr->_left_son);
                 int_ptr++;
             }
             if (curr->_right_son != NULL) {
-                *int_ptr = (void *) (curr->_right_son);
+                *int_ptr = (void *)(curr->_right_son);
                 int_ptr++;
             }
         } else if (type & BFS_RIGHT_FIRST) {
             if (curr->_right_son != NULL) {
-                *int_ptr = (void *) (curr->_right_son);
+                *int_ptr = (void *)(curr->_right_son);
                 int_ptr++;
             }
             if (curr->_left_son != NULL) {
-                *int_ptr = (void *) (curr->_left_son);
+                *int_ptr = (void *)(curr->_left_son);
                 int_ptr++;
             }
         }
     }
     if (opts & SEARCH_KEYS) {
-        // If keys were searched, part of the array (half of it on x86-64)
+        // If keys were searched, part of the array (half of it on x86_64)
         // is totally unneeded, so we can release it.
         // reallocarray is used instead of realloc to account for possible size
         // computation overflows (see man).
-        if ((bfsRes = reallocarray(bfsRes, (size_t) (tree->nodes_count),
+        if ((bfs_res = reallocarray(bfs_res, (size_t)(tree->nodes_count),
                 sizeof(int))) == NULL) {
-            free(bfsRes);
+            free(bfs_res);
             return NULL;
         }
     }
-    return bfsRes;
+    return bfs_res;
 }
 
 // INTERNAL LIBRARY SUBROUTINES //
