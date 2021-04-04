@@ -44,7 +44,7 @@ typedef unsigned long int ulong;
  * This option can be used to perform the splaying operation on the target node
  * during a search. For performance purposes, this behaviour is configurable,
  * since it can prevent concurrent accesses in multithreaded scenarios.
- * If set, the amortized analisys result applies and the amortized time for all
+ * If set, the amortized analysis result applies and the amortized time for all
  * types of operations seen in a sequence is logarithmic in the max number of
  * nodes the structure reaches in a sequence, but searches must be performed
  * atomically (and locking of the structure is not dealt with here).
