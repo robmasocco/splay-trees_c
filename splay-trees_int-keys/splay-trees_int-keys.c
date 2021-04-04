@@ -31,7 +31,7 @@ void _spli_left_rotation(SplayIntNode *node);
 //void _spli_rotate(SplayIntNode *node);  // TODO Deprecated.
 //void _spli_splay_insert(SplayIntNode *new_node);  // TODO Deprecated.
 //void _spli_splay_delete(SplayIntNode *rem_father);  // TODO Deprecated.
-void _spli_splay(SplayIntNode *node);
+SplayIntNode *_spli_splay(SplayIntNode *node);
 void _spli_inodfs(SplayIntNode *root_node, void ***int_ptr, int int_opt);
 void _spli_preodfs(SplayIntNode *root_node, void ***int_ptr, int int_opt);
 void _spli_postodfs(SplayIntNode *root_node, void ***int_ptr, int int_opt);
@@ -138,12 +138,13 @@ int splay_int_delete(SplayIntTree *tree, int key, int opts) {
     if ((opts < 0) || (tree == NULL)) return 0;
     SplayIntNode *to_delete = _search_splay_int_node(tree, key);
     if (to_delete != NULL) {
-        // Splay the target node.
-        while (tree->_root != to_delete) _spli_splay(to_delete);
-        // Remove the target node from the tree, then join the two subtrees.
-        SplayIntNode *left_sub_root = _spli_cut_left_subtree(to_delete);
-        SplayIntNode *right_sub_root = _spli_cut_right_subtree(to_delete);
-        tree->_root = _spli_join(left_sub_root, right_sub_root);
+        // Splay the target node. Follow the content swaps!
+        while (tree->_root != to_delete)
+            to_delete = _spli_splay(to_delete);
+        // Remove the new root from the tree, then join the two subtrees.
+        SplayIntNode *left_sub = _spli_cut_left_subtree(to_delete);
+        SplayIntNode *right_sub = _spli_cut_right_subtree(to_delete);
+        tree->_root = _spli_join(left_sub, right_sub);
         // Apply eventual options to free keys and data, then free the node.
         if (opts & DELETE_FREE_DATA) free(to_delete->_data);
         free(to_delete);
@@ -535,17 +536,20 @@ void _spli_left_rotation(SplayIntNode *node) {
  * becomes the tree's root.
  *
  * @param node Node to splay.
+ * @return Pointer to the splayed node as it climbs up (content swaps!).
  */
-void _spli_splay(SplayIntNode *node) {
+SplayIntNode *_spli_splay(SplayIntNode *node) {
     // Consistency check.
     if (node == NULL) return;
     if (node->_father == NULL) return;  // Nothing to do.
     SplayIntNode *father_node = node->_father;
     SplayIntNode *grand_node = father_node->_father;
+    SplayIntNode *new_curr_node;
     if (grand_node == NULL) {
         // Case 1: Father is the root. Rotate to climb accordingly.
         if (father_node->_left_son == node) _spli_right_rotation(father_node);
         else _spli_left_rotation(father_node);
+        new_curr_node = father_node;
     } else {
         if ((father_node->_left_son == node) &&
             (grand_node->_left_son == father_node)) {
@@ -575,7 +579,9 @@ void _spli_splay(SplayIntNode *node) {
             _spli_left_rotation(father_node);
             _spli_right_rotation(grand_node);
         }
+        new_curr_node = grand_node;  // The node always takes its grand's place.
     }
+    return new_curr_node;
 }
 
 // TODO Deprecated.
