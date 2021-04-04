@@ -8,8 +8,6 @@ They work as a dictionary, storing values paired with keys and rearranging recor
 
 - Integer keys (int).
 
-**NOTE:** This library is currently under development, as you can tell from the _dev_ branch. The _main_ branch will be updated as soon as a first version is available.
-
 ## Splay trees and multithreading
 
 Splay trees were invented by D. Sleator and R. Tarjan as a form of self-adjusting data structure that could work as a dictionary, in a more efficient way than known alternatives like AVL trees. For one, they do not store any kind of balancing or bookkeeping information, nor do they perform computations along a path from the root to a given node to assess the status of the structure and perform management operations. They just apply the **splay heuristic**: once any node is accessed, as a result of any operation among *search*, *insert* and *delete*, a series of rotations that follows a specific set of [rules](https://en.wikipedia.org/wiki/Splay_tree#Splaying) is performed to move the node up to the root of the tree. This implies that **any** operation on the tree potentially modifies it.

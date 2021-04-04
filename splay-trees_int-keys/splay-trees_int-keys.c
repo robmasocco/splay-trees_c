@@ -89,6 +89,7 @@ void *splay_int_search(SplayIntTree *tree, int key, int opts) {
     if ((opts <= 0) || (tree == NULL)) return NULL;  // Sanity check.
     SplayIntNode *searched_node = _spli_search_node(tree, key);
     if (searched_node == NULL) return NULL;
+    // Splay the searched node.
     if (opts & SEARCH_SPLAY)
         while (tree->_root != searched_node)
             searched_node = _spli_splay(searched_node);
