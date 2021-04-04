@@ -32,6 +32,7 @@ void _spli_left_rotation(SplayIntNode *node);
 //void _spli_splay_insert(SplayIntNode *new_node);  // TODO Deprecated.
 //void _spli_splay_delete(SplayIntNode *rem_father);  // TODO Deprecated.
 SplayIntNode *_spli_splay(SplayIntNode *node);
+SplayIntNode *_spli_join(SplayIntNode *left_root, SplayIntNode *right_root);
 void _spli_inodfs(SplayIntNode *root_node, void ***int_ptr, int int_opt);
 void _spli_preodfs(SplayIntNode *root_node, void ***int_ptr, int int_opt);
 void _spli_postodfs(SplayIntNode *root_node, void ***int_ptr, int int_opt);
@@ -107,32 +108,6 @@ void *splay_int_search(SplayIntTree *tree, int key, int opts) {
  * @param opts Also willing to free the stored data?
  * @return 1 if found and deleted, 0 if not found or input args were bad.
  */
-/*int splay_int_delete(SplayIntTree *tree, int key, int opts) {
-    // Sanity check on input arguments.
-    if ((opts < 0) || (tree == NULL)) return 0;
-    SplayIntNode *toDelete = _search_splay_int_node(tree, key);
-    SplayIntNode *toFree;
-    if (toDelete != NULL) {
-        // Check whether the node has no sons or even one.
-        if ((toDelete->_left_son == NULL) || (toDelete->_right_son == NULL)) {
-            toFree = _spli_cut_one_son_node(toDelete);
-        } else {
-            // Find the node's predecessor and swap the content.
-            SplayIntNode *maxLeft = _spli_max_key_son(toDelete->_left_son);
-            _spli_swap_info(toDelete, maxLeft);
-            // Remove the original predecessor.
-            toFree = _spli_cut_one_son_node(maxLeft);
-        }
-        // Apply eventual options to free keys and data, then free the node.
-        if (opts & DELETE_FREE_DATA) free(toFree->_data);
-        free(toFree);
-        tree->nodes_count--;
-        // Check if the tree is now empty and update root pointer.
-        if (tree->nodes_count == 0) tree->_root = NULL;
-        return 1;  // Found and deleted.
-    }
-    return 0;  // Not found.
-}*/
 int splay_int_delete(SplayIntTree *tree, int key, int opts) {
     // Sanity check on input arguments.
     if ((opts < 0) || (tree == NULL)) return 0;
@@ -539,9 +514,9 @@ void _spli_left_rotation(SplayIntNode *node) {
  * @return Pointer to the splayed node as it climbs up (content swaps!).
  */
 SplayIntNode *_spli_splay(SplayIntNode *node) {
-    // Consistency check.
-    if (node == NULL) return;
-    if (node->_father == NULL) return;  // Nothing to do.
+    // Consistency checks.
+    if (node == NULL) return NULL;
+    if (node->_father == NULL) return node;  // Nothing to do.
     SplayIntNode *father_node = node->_father;
     SplayIntNode *grand_node = father_node->_father;
     SplayIntNode *new_curr_node;
@@ -582,6 +557,27 @@ SplayIntNode *_spli_splay(SplayIntNode *node) {
         new_curr_node = grand_node;  // The node always takes its grand's place.
     }
     return new_curr_node;
+}
+
+/*
+ * Upon deletion, joins two subtrees and returns the new root.
+ *
+ * @param left_root Pointer to the root node of the left subtree.
+ * @param right_root Pointer to the root node of the right subtree.
+ * @return Pointer to the new root node.
+ */
+SplayIntNode *_spli_join(SplayIntNode *left_root, SplayIntNode *right_root) {
+    // Easy cases: one or both subtrees are missing.
+    if ((left_root == NULL) && (right_root == NULL)) return NULL;
+    if (left_root == NULL) return right_root;
+    if (right_root == NULL) return left_root;
+    // Not-so-easy case: splay the largest-key node in the left subtree and
+    // then join the right as right subtree.
+    SplayIntNode *left_max = _spli_max_key_son(left_root);
+    while (left_root != left_max)
+        left_max = _spli_splay(left_max);
+    _spli_insert_right_subtree(left_root, right_root);
+    return left_root;
 }
 
 // TODO Deprecated.
