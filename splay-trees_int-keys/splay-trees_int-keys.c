@@ -14,9 +14,6 @@
 #include <limits.h>
 #include "splay-trees_int-keys.h"
 
-/* Macro to find the maximum between two integers. */
-#define MAX(X, Y) ((X) <= (Y) ? (Y) : (X))
-
 /* Internal library subroutines declarations. */
 SplayIntNode *_create_splay_int_node(int new_key, void *new_data);
 void _delete_splay_int_node(SplayIntNode *node);
@@ -27,32 +24,31 @@ SplayIntNode *_spli_cut_left_subtree(SplayIntNode *father);
 SplayIntNode *_spli_cut_right_subtree(SplayIntNode *father);
 SplayIntNode *_spli_cut_subtree(SplayIntNode *node);
 SplayIntNode *_spli_max_key_son(SplayIntNode *node);
-SplayIntNode *_spli_cut_one_son_node(SplayIntNode *node);
+//SplayIntNode *_spli_cut_one_son_node(SplayIntNode *node);  // TODO Deprecated.
 void _spli_swap_info(SplayIntNode *node1, SplayIntNode *node2);
 void _spli_right_rotation(SplayIntNode *node);
 void _spli_left_rotation(SplayIntNode *node);
-void _spli_rotate(SplayIntNode *node);  // TODO Deprecated?
-void _spli_splay_insert(SplayIntNode *new_node);  // TODO See below.
-void _spli_splay_delete(SplayIntNode *rem_father);  // TODO See below.
+//void _spli_rotate(SplayIntNode *node);  // TODO Deprecated.
+//void _spli_splay_insert(SplayIntNode *new_node);  // TODO Deprecated.
+//void _spli_splay_delete(SplayIntNode *rem_father);  // TODO Deprecated.
+void _spli_splay(SplayIntNode *node);
 void _spli_inodfs(SplayIntNode *root_node, void ***int_ptr, int int_opt);
 void _spli_preodfs(SplayIntNode *root_node, void ***int_ptr, int int_opt);
 void _spli_postodfs(SplayIntNode *root_node, void ***int_ptr, int int_opt);
-
-// TODO Add splay heuristic for search?
 
 // USER FUNCTIONS //
 /*
  * Creates a new AVL Tree in the heap.
  *
- * @return Pointer to the newly created tree.
+ * @return Pointer to the newly created tree, NULL if allocation failed.
  */
 SplayIntTree *create_splay_int_tree(void) {
-    SplayIntTree *newTree = (SplayIntTree *) malloc(sizeof(SplayIntTree));
-    if (newTree == NULL) return NULL;
-    newTree->_root = NULL;
-    newTree->nodes_count = 0;
-    newTree->max_nodes = ULONG_MAX;
-    return newTree;
+    SplayIntTree *new_tree = (SplayIntTree *)malloc(sizeof(SplayIntTree));
+    if (new_tree == NULL) return NULL;
+    new_tree->_root = NULL;
+    new_tree->nodes_count = 0;
+    new_tree->max_nodes = ULONG_MAX;
+    return new_tree;
 }
 
 /* 
@@ -61,12 +57,11 @@ SplayIntTree *create_splay_int_tree(void) {
  *
  * @param tree Pointer to the tree to free.
  * @param opts Options to configure the deletion behaviour (see header).
- * @return 0 if all went well, or -1.
+ * @return 0 if all went well, or -1 if input args were bad.
  */
 int delete_splay_int_tree(SplayIntTree *tree, int opts) {
     // Sanity check on input arguments.
-    if (tree == NULL) return -1;
-    if (opts < 0) return -1;
+    if ((tree == NULL) || (opts < 0)) return -1;
     // If the tree is empty free it directly.
     if (tree->_root == NULL) {
         free(tree);
@@ -96,11 +91,10 @@ int delete_splay_int_tree(SplayIntTree *tree, int opts) {
  */
 void *splay_int_search(SplayIntTree *tree, int key, int opts) {
     if ((opts <= 0) || (tree == NULL)) return NULL;  // Sanity check.
-    SplayIntNode *searchedNode = _search_splay_int_node(tree, key);
-    if (searchedNode != NULL) {
-        if (opts & SEARCH_DATA) return searchedNode->_data;
-        if (opts & SEARCH_NODES) return searchedNode;
-        return NULL;
+    SplayIntNode *searched_node = _search_splay_int_node(tree, key);
+    if (searched_node != NULL) {
+        if (opts & SEARCH_DATA) return searched_node->_data;
+        if (opts & SEARCH_NODES) return searched_node;
     }
     return NULL;
 }
@@ -111,9 +105,9 @@ void *splay_int_search(SplayIntTree *tree, int key, int opts) {
  * @param tree Pointer to the tree to delete from.
  * @param key Key to delete from the dictionary.
  * @param opts Also willing to free the stored data?
- * @return 1 if found and deleted, 0 if not found.
+ * @return 1 if found and deleted, 0 if not found or input args were bad.
  */
-int splay_int_delete(SplayIntTree *tree, int key, int opts) {
+/*int splay_int_delete(SplayIntTree *tree, int key, int opts) {
     // Sanity check on input arguments.
     if ((opts < 0) || (tree == NULL)) return 0;
     SplayIntNode *toDelete = _search_splay_int_node(tree, key);
@@ -135,6 +129,25 @@ int splay_int_delete(SplayIntTree *tree, int key, int opts) {
         tree->nodes_count--;
         // Check if the tree is now empty and update root pointer.
         if (tree->nodes_count == 0) tree->_root = NULL;
+        return 1;  // Found and deleted.
+    }
+    return 0;  // Not found.
+}*/
+int splay_int_delete(SplayIntTree *tree, int key, int opts) {
+    // Sanity check on input arguments.
+    if ((opts < 0) || (tree == NULL)) return 0;
+    SplayIntNode *to_delete = _search_splay_int_node(tree, key);
+    if (to_delete != NULL) {
+        // Splay the target node.
+        while (tree->_root != to_delete) _spli_splay(to_delete);
+        // Remove the target node from the tree, then join the two subtrees.
+        SplayIntNode *left_sub_root = _spli_cut_left_subtree(to_delete);
+        SplayIntNode *right_sub_root = _spli_cut_right_subtree(to_delete);
+        tree->_root = _spli_join(left_sub_root, right_sub_root);
+        // Apply eventual options to free keys and data, then free the node.
+        if (opts & DELETE_FREE_DATA) free(to_delete->_data);
+        free(to_delete);
+        tree->nodes_count--;
         return 1;  // Found and deleted.
     }
     return 0;  // Not found.
@@ -326,7 +339,7 @@ void **splay_int_bfs(SplayIntTree *tree, int type, int opts) {
  *
  * @param new_key Key to add.
  * @param new_data Data to add.
- * @return Pointer to a new node.
+ * @return Pointer to a new node, or NULL if allocation failed.
  */
 SplayIntNode *_create_splay_int_node(int new_key, void *new_data) {
     SplayIntNode *new_node = (SplayIntNode *)malloc(sizeof(SplayIntNode));
@@ -400,6 +413,7 @@ SplayIntNode *_spli_cut_right_subtree(SplayIntNode *father) {
     return son;
 }
 
+// TODO Deprecated?
 /*
  * Cuts and returns the subtree nested in a given node.
  *
@@ -439,7 +453,7 @@ SplayIntNode *_spli_max_key_son(SplayIntNode *node) {
  *
  * @param tree Pointer to the tree to look into.
  * @param key Key to look for.
- * @return Pointer to the target node (if any).
+ * @return Pointer to the target node, or NULL if none or input args were bad.
  */
 SplayIntNode *_search_splay_int_node(SplayIntTree *tree, int key) {
     if (tree->_root == NULL) return NULL;
@@ -479,22 +493,19 @@ void _spli_swap_info(SplayIntNode *node1, SplayIntNode *node2) {
  * @param node Node to rotate onto.
  */
 void _spli_right_rotation(SplayIntNode *node) {
-    SplayIntNode *leftSon = node->_left_son;
+    SplayIntNode *left_son = node->_left_son;
     // Swap the node and its son's contents to make it climb.
-    _spli_swap_info(node, leftSon);
+    _spli_swap_info(node, left_son);
     // Shrink the tree portion in subtrees.
-    SplayIntNode *rTree = _spli_cut_right_subtree(node);
-    SplayIntNode *lTree = _spli_cut_left_subtree(node);
-    SplayIntNode *lTree_l = _spli_cut_left_subtree(leftSon);
-    SplayIntNode *lTree_r = _spli_cut_right_subtree(leftSon);
+    SplayIntNode *r_tree = _spli_cut_right_subtree(node);
+    SplayIntNode *l_tree = _spli_cut_left_subtree(node);
+    SplayIntNode *l_tree_l = _spli_cut_left_subtree(left_son);
+    SplayIntNode *l_tree_r = _spli_cut_right_subtree(left_son);
     // Recombine portions to respect the search property.
-    _spli_insert_right_subtree(lTree, rTree);
-    _spli_insert_left_subtree(lTree, lTree_r);
-    _spli_insert_right_subtree(node, lTree);
-    _spli_insert_left_subtree(node, lTree_l);
-    // Update the height of the involved nodes.
-    _intUpdateHeight(node->_right_son);
-    _intUpdateHeight(node);
+    _spli_insert_right_subtree(l_tree, r_tree);
+    _spli_insert_left_subtree(l_tree, l_tree_r);
+    _spli_insert_right_subtree(node, l_tree);
+    _spli_insert_left_subtree(node, l_tree_l);
 }
 
 /*
@@ -503,29 +514,75 @@ void _spli_right_rotation(SplayIntNode *node) {
  * @param node Node to rotate onto.
  */
 void _spli_left_rotation(SplayIntNode *node) {
-    SplayIntNode *rightSon = node->_right_son;
+    SplayIntNode *right_son = node->_right_son;
     // Swap the node and its son's contents to make it climb.
-    _spli_swap_info(node, rightSon);
+    _spli_swap_info(node, right_son);
     // Shrink the tree portion in subtrees.
-    SplayIntNode *rTree = _spli_cut_right_subtree(node);
-    SplayIntNode *lTree = _spli_cut_left_subtree(node);
-    SplayIntNode *rTree_l = _spli_cut_left_subtree(rightSon);
-    SplayIntNode *rTree_r = _spli_cut_right_subtree(rightSon);
+    SplayIntNode *r_tree = _spli_cut_right_subtree(node);
+    SplayIntNode *l_tree = _spli_cut_left_subtree(node);
+    SplayIntNode *r_tree_l = _spli_cut_left_subtree(right_son);
+    SplayIntNode *r_tree_r = _spli_cut_right_subtree(right_son);
     // Recombine portions to respect the search property.
-    _spli_insert_left_subtree(rTree, lTree);
-    _spli_insert_right_subtree(rTree, rTree_l);
-    _spli_insert_left_subtree(node, rTree);
-    _spli_insert_right_subtree(node, rTree_r);
-    // Update the height of the involved nodes.
-    _intUpdateHeight(node->_left_son);
-    _intUpdateHeight(node);
+    _spli_insert_left_subtree(r_tree, l_tree);
+    _spli_insert_right_subtree(r_tree, r_tree_l);
+    _spli_insert_left_subtree(node, r_tree);
+    _spli_insert_right_subtree(node, r_tree_r);
 }
 
 /*
+ * Performs a single splay step onto a given node.
+ * Note that in order to fully splay a node, this has to be called until a node
+ * becomes the tree's root.
+ *
+ * @param node Node to splay.
+ */
+void _spli_splay(SplayIntNode *node) {
+    // Consistency check.
+    if (node == NULL) return;
+    if (node->_father == NULL) return;  // Nothing to do.
+    SplayIntNode *father_node = node->_father;
+    SplayIntNode *grand_node = father_node->_father;
+    if (grand_node == NULL) {
+        // Case 1: Father is the root. Rotate to climb accordingly.
+        if (father_node->_left_son == node) _spli_right_rotation(father_node);
+        else _spli_left_rotation(father_node);
+    } else {
+        if ((father_node->_left_son == node) &&
+            (grand_node->_left_son == father_node)) {
+            // Case 2: Both nodes are left sons.
+            // Perform two right rotations. Watch out for content swaps!
+            _spli_right_rotation(grand_node);
+            _spli_right_rotation(grand_node);
+        }
+        if ((father_node->_right_son == node) &&
+            (grand_node->_right_son == father_node)) {
+            // Case 3: Both nodes are right sons. Watch out for content swaps!
+            // Perform two left rotations.
+            _spli_left_rotation(grand_node);
+            _spli_left_rotation(grand_node);
+        }
+        if ((father_node->_left_son == node) &&
+            (grand_node->_right_son == father_node)) {
+            // Case 4: Father is right son while this is a left son.
+            // Perform two rotations, on the father and on the grand node.
+            _spli_right_rotation(father_node);
+            _spli_left_rotation(grand_node);
+        }
+        if ((father_node->_right_son == node) &&
+            (grand_node->_left_son == father_node)) {
+            // Case 5: Father is left son while this is a right son.
+            // Perform two rotations, on the father and on the grand node.
+            _spli_left_rotation(father_node);
+            _spli_right_rotation(grand_node);
+        }
+    }
+}
+
+// TODO Deprecated.
+/*
  * Examines the balance factor of a given node and eventually rotates.
  */
-/* TODO Deprecated? */
-void _spli_rotate(SplayIntNode *node) {
+/*void _spli_rotate(SplayIntNode *node) {
     int balFactor = _intBalanceFactor(node);
     if (balFactor == 2) {
         if (_intBalanceFactor(node->_left_son) >= 0) {
@@ -546,11 +603,11 @@ void _spli_rotate(SplayIntNode *node) {
             _spli_left_rotation(node);
         }
     }
-}
+}*/
 
-// TODO Must be refactored into splay heuristic for insertion.
+// TODO Deprecated.
 /* Updates heights and looks for displacements following an insertion. */
-void _spli_splay_insert(SplayIntNode *new_node) {
+/*void _spli_splay_insert(SplayIntNode *new_node) {
     SplayIntNode *curr = new_node->_father;
     while (curr != NULL) {
         if (abs(_intBalanceFactor(curr)) >= 2) {
@@ -562,11 +619,11 @@ void _spli_splay_insert(SplayIntNode *new_node) {
         }
     }
     if (curr != NULL) _spli_rotate(curr);
-}
+}*/
 
-// TODO Must be refactored into splay heuristic for deletion.
+// TODO Deprecated
 /* Updates heights and looks for displacements following a deletion. */
-void _spli_splay_delete(SplayIntNode *rem_father) {
+/*void _spli_splay_delete(SplayIntNode *rem_father) {
     SplayIntNode *curr = rem_father;
     while (curr != NULL) {
         if (abs(_intBalanceFactor(curr)) >= 2) {
@@ -575,17 +632,16 @@ void _spli_splay_delete(SplayIntNode *rem_father) {
         } else _intUpdateHeight(curr);
         curr = curr->_father;
     }
-}
+}*/
 
-// TODO Add splay heuristic for search?
-
+// TODO Deprecated.
 /*
  * Cuts a node with a single son.
  *
  * @param node Node to cut.
  * @return Pointer to the disconnected node.
  */
-SplayIntNode *_spli_cut_one_son_node(SplayIntNode *node) {
+/*SplayIntNode *_spli_cut_one_son_node(SplayIntNode *node) {
     SplayIntNode *son = NULL;
     SplayIntNode *father = node->_father;
     if (node->_left_son != NULL) {
@@ -605,7 +661,7 @@ SplayIntNode *_spli_cut_one_son_node(SplayIntNode *node) {
     }
     _spli_splay_delete(father);
     return son;  // Return the node to free, now totally disconnected.
-}
+}*/
 
 /*
  * Performs an in-order, recursive DFS.
