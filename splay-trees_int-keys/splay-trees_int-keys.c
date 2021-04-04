@@ -15,9 +15,9 @@
 #include "splay-trees_int-keys.h"
 
 /* Internal library subroutines declarations. */
-SplayIntNode *_create_splay_int_node(int new_key, void *new_data);
-void _delete_splay_int_node(SplayIntNode *node);
-SplayIntNode *_search_splay_int_node(SplayIntTree *tree, int key);
+SplayIntNode *_spli_create_node(int new_key, void *new_data);
+void _spli_delete_node(SplayIntNode *node);
+SplayIntNode *_spli_search_node(SplayIntTree *tree, int key);
 void _spli_insert_left_subtree(SplayIntNode *father, SplayIntNode *new_son);
 void _spli_insert_right_subtree(SplayIntNode *father, SplayIntNode *new_son);
 SplayIntNode *_spli_cut_left_subtree(SplayIntNode *father);
@@ -69,7 +69,7 @@ int delete_splay_int_tree(SplayIntTree *tree, int opts) {
     // Free the nodes and eventually their data.
     for (unsigned long int i = 0; i < tree->nodes_count; i++) {
         if (opts & DELETE_FREE_DATA) free((*(nodes[i]))._data);
-        _delete_splay_int_node(nodes[i]);
+        _spli_delete_node(nodes[i]);
     }
     // Free the nodes array and the tree, and that's it!
     free(nodes);
@@ -87,7 +87,7 @@ int delete_splay_int_tree(SplayIntTree *tree, int opts) {
  */
 void *splay_int_search(SplayIntTree *tree, int key, int opts) {
     if ((opts <= 0) || (tree == NULL)) return NULL;  // Sanity check.
-    SplayIntNode *searched_node = _search_splay_int_node(tree, key);
+    SplayIntNode *searched_node = _spli_search_node(tree, key);
     if (searched_node == NULL) return NULL;
     if (opts & SEARCH_SPLAY)
         while (tree->_root != searched_node)
@@ -107,7 +107,7 @@ void *splay_int_search(SplayIntTree *tree, int key, int opts) {
 int splay_int_delete(SplayIntTree *tree, int key, int opts) {
     // Sanity check on input arguments.
     if ((opts < 0) || (tree == NULL)) return 0;
-    SplayIntNode *to_delete = _search_splay_int_node(tree, key);
+    SplayIntNode *to_delete = _spli_search_node(tree, key);
     if (to_delete != NULL) {
         // Splay the target node. Follow the content swaps!
         while (tree->_root != to_delete)
@@ -136,7 +136,7 @@ int splay_int_delete(SplayIntTree *tree, int key, int opts) {
 ulong splay_int_insert(SplayIntTree *tree, int new_key, void *new_data) {
     if (tree == NULL) return 0;  // Sanity check.
     if (tree->nodes_count == tree->max_nodes) return 0;  // The tree is full.
-    SplayIntNode *new_node = _create_splay_int_node(new_key, new_data);
+    SplayIntNode *new_node = _spli_create_node(new_key, new_data);
     if (tree->_root == NULL) {
         // The tree is empty.
         tree->_root = new_node;
@@ -310,7 +310,7 @@ void **splay_int_bfs(SplayIntTree *tree, int type, int opts) {
  * @param new_data Data to add.
  * @return Pointer to a new node, or NULL if allocation failed.
  */
-SplayIntNode *_create_splay_int_node(int new_key, void *new_data) {
+SplayIntNode *_spli_create_node(int new_key, void *new_data) {
     SplayIntNode *new_node = (SplayIntNode *)malloc(sizeof(SplayIntNode));
     if (new_node == NULL) return NULL;
     new_node->_father = NULL;
@@ -326,7 +326,7 @@ SplayIntNode *_create_splay_int_node(int new_key, void *new_data) {
  *
  * @param node Node to release.
  */
-void _delete_splay_int_node(SplayIntNode *node) {
+void _spli_delete_node(SplayIntNode *node) {
     free(node);
 }
 
@@ -401,7 +401,7 @@ SplayIntNode *_spli_max_key_son(SplayIntNode *node) {
  * @param key Key to look for.
  * @return Pointer to the target node, or NULL if none or input args were bad.
  */
-SplayIntNode *_search_splay_int_node(SplayIntTree *tree, int key) {
+SplayIntNode *_spli_search_node(SplayIntTree *tree, int key) {
     if (tree->_root == NULL) return NULL;
     SplayIntNode *curr = tree->_root;
     int comp;
@@ -494,8 +494,10 @@ SplayIntNode *_spli_splay(SplayIntNode *node) {
         // Case 1: Father is the root. Rotate to climb accordingly.
         if (father_node->_left_son == node) _spli_right_rotation(father_node);
         else _spli_left_rotation(father_node);
+        // The node always takes its father's place.
         new_curr_node = father_node;
     } else {
+        // Notice how only one of these is possible.
         if ((father_node->_left_son == node) &&
             (grand_node->_left_son == father_node)) {
             // Case 2: Both nodes are left sons.
@@ -524,7 +526,8 @@ SplayIntNode *_spli_splay(SplayIntNode *node) {
             _spli_left_rotation(father_node);
             _spli_right_rotation(grand_node);
         }
-        new_curr_node = grand_node;  // The node always takes its grand's place.
+        // The node always takes its grand's place.
+        new_curr_node = grand_node;
     }
     return new_curr_node;
 }
