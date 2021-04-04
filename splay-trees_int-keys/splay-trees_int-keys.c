@@ -94,6 +94,7 @@ void *splay_int_search(SplayIntTree *tree, int key, int opts) {
             searched_node = _spli_splay(searched_node);
     if (opts & SEARCH_DATA) return searched_node->_data;
     if (opts & SEARCH_NODES) return (void *)searched_node;
+    return NULL;
 }
 
 /*
