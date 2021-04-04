@@ -22,15 +22,10 @@ void _spli_insert_left_subtree(SplayIntNode *father, SplayIntNode *new_son);
 void _spli_insert_right_subtree(SplayIntNode *father, SplayIntNode *new_son);
 SplayIntNode *_spli_cut_left_subtree(SplayIntNode *father);
 SplayIntNode *_spli_cut_right_subtree(SplayIntNode *father);
-SplayIntNode *_spli_cut_subtree(SplayIntNode *node);
 SplayIntNode *_spli_max_key_son(SplayIntNode *node);
-//SplayIntNode *_spli_cut_one_son_node(SplayIntNode *node);  // TODO Deprecated.
 void _spli_swap_info(SplayIntNode *node1, SplayIntNode *node2);
 void _spli_right_rotation(SplayIntNode *node);
 void _spli_left_rotation(SplayIntNode *node);
-//void _spli_rotate(SplayIntNode *node);  // TODO Deprecated.
-//void _spli_splay_insert(SplayIntNode *new_node);  // TODO Deprecated.
-//void _spli_splay_delete(SplayIntNode *rem_father);  // TODO Deprecated.
 SplayIntNode *_spli_splay(SplayIntNode *node);
 SplayIntNode *_spli_join(SplayIntNode *left_root, SplayIntNode *right_root);
 void _spli_inodfs(SplayIntNode *root_node, void ***int_ptr, int int_opt);
@@ -387,29 +382,6 @@ SplayIntNode *_spli_cut_right_subtree(SplayIntNode *father) {
     return son;
 }
 
-// TODO Deprecated?
-/*
- * Cuts and returns the subtree nested in a given node.
- *
- * @param father Node to cut the subtree at.
- * @return Pointer to the cut subtree's root.
- */
-SplayIntNode *_spli_cut_subtree(SplayIntNode *node) {
-    if (node == NULL) return NULL;  // Sanity check.
-    if (node->_father == NULL) return node;  // Asked to cut at root.
-    SplayIntNode *father = node->_father;
-    if ((node->_left_son == NULL) && (node->_right_son == NULL)) {
-        // The node is a leaf: distinguish between the node being a left or
-        // right son and cut accordingly.
-        if (father->_right_son == node) {
-            father->_right_son = NULL;
-        } else father->_left_son = NULL;
-        node->_father = NULL;
-        return node;
-    } else if (father->_left_son == node) return _spli_cut_left_subtree(father);
-    return _spli_cut_right_subtree(father);
-}
-
 /*
  * Returns the descendant of a given node with the greatest key.
  *
@@ -577,91 +549,6 @@ SplayIntNode *_spli_join(SplayIntNode *left_root, SplayIntNode *right_root) {
     _spli_insert_right_subtree(left_root, right_root);
     return left_root;
 }
-
-// TODO Deprecated.
-/*
- * Examines the balance factor of a given node and eventually rotates.
- */
-/*void _spli_rotate(SplayIntNode *node) {
-    int balFactor = _intBalanceFactor(node);
-    if (balFactor == 2) {
-        if (_intBalanceFactor(node->_left_son) >= 0) {
-            // LL displacement: rotate right.
-            _spli_right_rotation(node);
-        } else {
-            // LR displacement: apply double rotation.
-            _spli_left_rotation(node->_left_son);
-            _spli_right_rotation(node);
-        }
-    } else if (balFactor == -2) {
-        if (_intBalanceFactor(node->_right_son) <= 0) {
-            // RR displacement: rotate left.
-            _spli_left_rotation(node);
-        } else {
-            // RL displacement: apply double rotation.
-            _spli_right_rotation(node->_right_son);
-            _spli_left_rotation(node);
-        }
-    }
-}*/
-
-// TODO Deprecated.
-/* Updates heights and looks for displacements following an insertion. */
-/*void _spli_splay_insert(SplayIntNode *new_node) {
-    SplayIntNode *curr = new_node->_father;
-    while (curr != NULL) {
-        if (abs(_intBalanceFactor(curr)) >= 2) {
-            // Unbalanced node found.
-            break;
-        } else {
-            _intUpdateHeight(curr);
-            curr = curr->_father;
-        }
-    }
-    if (curr != NULL) _spli_rotate(curr);
-}*/
-
-// TODO Deprecated
-/* Updates heights and looks for displacements following a deletion. */
-/*void _spli_splay_delete(SplayIntNode *rem_father) {
-    SplayIntNode *curr = rem_father;
-    while (curr != NULL) {
-        if (abs(_intBalanceFactor(curr)) >= 2) {
-            // There may be more than one unbalanced node.
-            _spli_rotate(curr);
-        } else _intUpdateHeight(curr);
-        curr = curr->_father;
-    }
-}*/
-
-// TODO Deprecated.
-/*
- * Cuts a node with a single son.
- *
- * @param node Node to cut.
- * @return Pointer to the disconnected node.
- */
-/*SplayIntNode *_spli_cut_one_son_node(SplayIntNode *node) {
-    SplayIntNode *son = NULL;
-    SplayIntNode *father = node->_father;
-    if (node->_left_son != NULL) {
-        son = node->_left_son;
-    } else if (node->_right_son != NULL) {
-        son = node->_right_son;
-    }
-    if (son == NULL) {  // The node is a leaf.
-        son = _spli_cut_subtree(node);  // Will be returned later.
-    } else {
-        // Swap the content from the son to the father.
-        _spli_swap_info(node, son);
-        // Cut the node and balance the deletion.
-        _spli_cut_subtree(son);
-        _spli_insert_right_subtree(node, _spli_cut_subtree(son->_right_son));
-        _spli_insert_left_subtree(node, _spli_cut_subtree(son->_left_son));
-    }
-    _spli_splay_delete(father);
-    return son;  // Return the node to free, now totally disconnected.
-}*/
 
 /*
  * Performs an in-order, recursive DFS.
