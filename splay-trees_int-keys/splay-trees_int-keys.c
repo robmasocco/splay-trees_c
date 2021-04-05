@@ -34,7 +34,7 @@ void _spli_postodfs(SplayIntNode *root_node, void ***int_ptr, int int_opt);
 
 // USER FUNCTIONS //
 /*
- * Creates a new AVL Tree in the heap.
+ * Creates a new Splay Tree in the heap.
  *
  * @return Pointer to the newly created tree, NULL if allocation failed.
  */
@@ -48,7 +48,7 @@ SplayIntTree *create_splay_int_tree(void) {
 }
 
 /* 
- * Frees a given AVL Tree from the heap. Using options defined in the header,
+ * Frees a given Splay Tree from the heap. Using options defined in the header,
  * it's possible to specify whether also data has to be freed or not.
  *
  * @param tree Pointer to the tree to free.
