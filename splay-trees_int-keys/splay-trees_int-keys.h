@@ -1,11 +1,11 @@
-/*
+/**
  * @brief Splay Tree data structure library header.
  *
  * @author Roberto Masocco
  *
  * @date April 4, 2021
  */
-/*
+/**
  * This file contains type definitions and declarations for the Splay Tree data
  * structure. See the source file for brief descriptions of what each function
  * does. Note that functions which names start with "_" are meant for internal
@@ -14,7 +14,7 @@
  * exposed methods require pointers or return some which refer to the heap: see
  * the source file to understand what needs to be freed after use.
  */
-/* 
+/**
  * This code is released under the MIT license.
  * See the attached LICENSE file.
  */
@@ -24,14 +24,14 @@
 
 typedef unsigned long int ulong;
 
-/* 
+/**
  * These options can be OR'd in a call to the delete functions to specify
  * if also the keys and/or the data in the nodes must be freed in the heap.
  * If nothing is specified, only the nodes are freed.
  */
 #define DELETE_FREE_DATA 0x1
 
-/*
+/**
  * These options can be specified to tell the search functions what data to
  * return from the trees.
  * Only one at a time is allowed.
@@ -40,7 +40,7 @@ typedef unsigned long int ulong;
 #define SEARCH_KEYS 0x8
 #define SEARCH_NODES 0x10
 
-/*
+/**
  * This option can be used to perform the splaying operation on the target node
  * during a search. For performance purposes, this behaviour is configurable,
  * since it can prevent concurrent accesses in multithreaded scenarios.
@@ -54,7 +54,7 @@ typedef unsigned long int ulong;
  */
 #define SEARCH_SPLAY 0x2
 
-/*
+/**
  * These options can be used to specify the desired kind of depth-first search.
  * Only one at a time is allowed.
  */
@@ -69,7 +69,7 @@ typedef unsigned long int ulong;
 #define BFS_LEFT_FIRST 0x100
 #define BFS_RIGHT_FIRST 0x200
 
-/* 
+/**
  * A Splay Tree's node stores pointers to its "father" node and to its sons.
  * Since we're using the "splay" heuristic, no balance information is stored.
  * In this implementation, integers are used as keys in the dictionary.
@@ -87,7 +87,7 @@ typedef struct _splay_int_node {
     void *_data;
 } SplayIntNode;
 
-/*
+/**
  * A Splay Tree stores a pointer to its root node and a counter which keeps
  * track of the number of nodes in the structure, to get an idea of its "size"
  * and be able to efficiently perform searches.
