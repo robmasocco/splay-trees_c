@@ -509,8 +509,8 @@ SplayIntNode *_spli_splay(SplayIntNode *node) {
         }
         if ((father_node->_right_son == node) &&
             (grand_node->_right_son == father_node)) {
-            // Case 3: Both nodes are right sons. Watch out for content swaps!
-            // Perform two left rotations.
+            // Case 3: Both nodes are right sons.
+            // Perform two left rotations. Watch out for content swaps!
             _spli_left_rotation(grand_node);
             _spli_left_rotation(grand_node);
         }
