@@ -19,8 +19,8 @@
  * See the attached LICENSE file.
  */
 
-#ifndef _SPLAYTREES_INTEGERKEYS_H
-#define _SPLAYTREES_INTEGERKEYS_H
+#ifndef SPLAYTREES_INTEGERKEYS_H
+#define SPLAYTREES_INTEGERKEYS_H
 
 typedef unsigned long int ulong;
 
